@@ -1,0 +1,79 @@
+:root {
+  --sidebar-bg: #212529;
+  --sidebar-hover: #6c757d;
+}
+
+body {
+  background-color: #f8f9fa;
+}
+
+main.min-vh-100 {
+  padding-bottom: 3rem;
+}
+
+.sidebar .accordion-button::after {
+  filter: invert(1);
+}
+
+.sidebar-link {
+  border-radius: 0;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+  background-color: var(--sidebar-hover);
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.flash-overlay {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1080;
+  width: min(320px, calc(100vw - 1rem));
+}
+
+.flash-toast {
+  position: relative;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.65rem 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  border-width: 1px;
+  box-shadow: 0 0.3rem 0.75rem rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.flash-toast-message {
+  word-break: break-word;
+}
+
+.flash-toast-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  transform-origin: left center;
+  transform: scaleX(1);
+}
+
+.api-results-table {
+  border-color: #dee2e6;
+}
+
+.api-results-table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.api-results-table tbody tr:hover {
+  background-color: #f8fafc;
+}
