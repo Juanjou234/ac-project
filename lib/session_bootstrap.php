@@ -6,14 +6,53 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-if (!isset($_SESSION['api_config']) || !is_array($_SESSION['api_config'])) {
-    $_SESSION['api_config'] = [
-        'url' => '',
-        'api_key' => '',
-        'header_name' => '',
-        'timeout_ms' => 5000,
-    ];
+if (!date_default_timezone_set('America/El_Salvador')) {
+    date_default_timezone_set('UTC');
 }
+
+$apiConfigDefault = [
+    'url' => '',
+    'api_key' => '',
+    'header_name' => '',
+    'usuario' => '',
+    'clave' => '',
+    'timeout_ms' => 5000,
+];
+
+if (!isset($_SESSION['api_configs']) || !is_array($_SESSION['api_configs'])) {
+    $legacy = $_SESSION['api_config'] ?? [];
+    if (!is_array($legacy)) {
+        $legacy = [];
+    }
+    $legacy = array_merge($apiConfigDefault, $legacy);
+    $legacyIsQuery = trim((string)$legacy['usuario']) !== '' || trim((string)$legacy['clave']) !== '';
+
+    $_SESSION['api_configs'] = [
+        'header' => $apiConfigDefault,
+        'query' => $apiConfigDefault,
+        'active' => 'header',
+    ];
+    if ($legacyIsQuery) {
+        $_SESSION['api_configs']['query'] = $legacy;
+    } else {
+        $_SESSION['api_configs']['header'] = $legacy;
+    }
+}
+
+$_SESSION['api_configs'] = array_merge(
+    [
+        'header' => $apiConfigDefault,
+        'query' => $apiConfigDefault,
+        'active' => 'header',
+    ],
+    $_SESSION['api_configs']
+);
+$_SESSION['api_configs']['header'] = array_merge($apiConfigDefault, (array)($_SESSION['api_configs']['header'] ?? []));
+$_SESSION['api_configs']['query'] = array_merge($apiConfigDefault, (array)($_SESSION['api_configs']['query'] ?? []));
+if (!in_array((string)($_SESSION['api_configs']['active'] ?? ''), ['header', 'query'], true)) {
+    $_SESSION['api_configs']['active'] = 'header';
+}
+$_SESSION['api_config'] = $_SESSION['api_configs'][$_SESSION['api_configs']['active']];
 
 if (!isset($_SESSION['data_custom']) || !is_array($_SESSION['data_custom'])) {
     $_SESSION['data_custom'] = [

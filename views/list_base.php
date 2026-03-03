@@ -372,7 +372,7 @@ $normalizeDisplayValue = static function (string $value): string {
           <th>Tipo</th>
           <th>Nombres</th>
           <th>Apellidos</th>
-          <th>Nombre completo</th>
+          <th>Nombre de Empresa</th>
           <th>Documento</th>
           <th class="text-end" style="min-width: 340px;">Acciones</th>
         </tr>
@@ -396,6 +396,11 @@ $normalizeDisplayValue = static function (string $value): string {
                 $nombres = (string)($row['nombres'] ?? '');
                 $apellidos = (string)($row['apellidos'] ?? '');
                 $nombreCompleto = (string)($row['nombre_completo'] ?? '');
+                $alias = (string)($row['alias'] ?? '');
+                $nacionalidad = (string)($row['nacionalidad'] ?? '');
+                $paisDomicilio = (string)($row['pais_domicilio'] ?? '');
+                $comentarios = (string)($row['comentarios'] ?? '');
+                $representanteLegal = (string)($row['representante_legal'] ?? '');
                 if ($modo === 'B' && trim($nombreCompleto) === '') {
                     $nombreCompleto = trim($nombres . ' ' . $apellidos);
                 }
@@ -411,6 +416,11 @@ $normalizeDisplayValue = static function (string $value): string {
                   data-apellidos="<?= e($apellidos) ?>"
                   data-nombre-completo="<?= e($nombreCompleto) ?>"
                   data-documento="<?= e($doc) ?>"
+                  data-alias="<?= e($alias) ?>"
+                  data-nacionalidad="<?= e($nacionalidad) ?>"
+                  data-pais-domicilio="<?= e($paisDomicilio) ?>"
+                  data-comentarios="<?= e($comentarios) ?>"
+                  data-representante-legal="<?= e($representanteLegal) ?>"
                 >
                   <i class="bi bi-pencil-square me-1"></i>Editar
                 </button>
@@ -475,6 +485,14 @@ $normalizeDisplayValue = static function (string $value): string {
             <label class="form-label">Apellidos</label>
             <input class="form-control js-validate-name" name="apellidos" id="edit_apellidos" maxlength="120">
           </div>
+          <div class="mb-3">
+            <label class="form-label">Alias</label>
+            <input class="form-control" name="alias" id="edit_alias" maxlength="120">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comentarios</label>
+            <textarea class="form-control" name="comentarios" id="edit_comentarios" rows="2" maxlength="500"></textarea>
+          </div>
         </div>
 
         <div id="bloque_edit_pj" class="d-none">
@@ -482,6 +500,20 @@ $normalizeDisplayValue = static function (string $value): string {
             <label class="form-label">Nombre completo</label>
             <input class="form-control js-validate-name" name="nombre_completo" id="edit_nombre_completo" maxlength="120">
           </div>
+          <div class="mb-3">
+            <label class="form-label">Representante Legal</label>
+            <input class="form-control" name="representante_legal" id="edit_representante_legal" maxlength="120">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Nacionalidad</label>
+          <input class="form-control" name="nacionalidad" id="edit_nacionalidad" maxlength="120">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Pais domicilio</label>
+          <input class="form-control" name="pais_domicilio" id="edit_pais_domicilio" maxlength="120">
         </div>
 
         <div class="mb-0">
@@ -525,6 +557,14 @@ $normalizeDisplayValue = static function (string $value): string {
             <label class="form-label">Apellidos</label>
             <input class="form-control js-validate-name" name="apellidos" id="nuevo_apellidos" maxlength="120">
           </div>
+          <div class="mb-3">
+            <label class="form-label">Alias</label>
+            <input class="form-control" name="alias" id="nuevo_alias" maxlength="120">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comentarios</label>
+            <textarea class="form-control" name="comentarios" id="nuevo_comentarios" rows="2" maxlength="500"></textarea>
+          </div>
         </div>
 
         <div id="bloque_nuevo_pj" class="d-none">
@@ -532,6 +572,20 @@ $normalizeDisplayValue = static function (string $value): string {
             <label class="form-label">Nombre completo</label>
             <input class="form-control js-validate-name" name="nombre_completo" id="nuevo_nombre_completo" maxlength="120">
           </div>
+          <div class="mb-3">
+            <label class="form-label">Representante Legal</label>
+            <input class="form-control" name="representante_legal" id="nuevo_representante_legal" maxlength="120">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Nacionalidad</label>
+          <input class="form-control" name="nacionalidad" id="nuevo_nacionalidad" maxlength="120">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Pais domicilio</label>
+          <input class="form-control" name="pais_domicilio" id="nuevo_pais_domicilio" maxlength="120">
         </div>
 
         <div class="mb-0">

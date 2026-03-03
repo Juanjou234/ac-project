@@ -5,10 +5,66 @@ declare(strict_types=1);
 function handle_post_action(string $fallbackPage): void
 {
     $action = trim((string)($_POST['action'] ?? ''));
+    $configProfile = trim((string)($_POST['config_profile'] ?? ''));
     $returnPage = trim((string)($_POST['return_page'] ?? $fallbackPage));
     if ($returnPage === '') {
         $returnPage = $fallbackPage;
     }
+    $persistApiConfig = static function (array $config): string {
+        $mode = (trim((string)($config['usuario'] ?? '')) !== '' || trim((string)($config['clave'] ?? '')) !== '') ? 'query' : 'header';
+        if (!isset($_SESSION['api_configs']) || !is_array($_SESSION['api_configs'])) {
+            $_SESSION['api_configs'] = [
+                'header' => [],
+                'query' => [],
+                'active' => 'header',
+            ];
+        }
+        $_SESSION['api_configs'][$mode] = $config;
+        if (!in_array((string)($_SESSION['api_configs']['active'] ?? ''), ['header', 'query'], true)) {
+            $_SESSION['api_configs']['active'] = 'header';
+        }
+        $_SESSION['api_config'] = $_SESSION['api_configs'][$_SESSION['api_configs']['active']];
+        return $mode;
+    };
+    $flashConnectionResult = static function (array $result): void {
+        $rawLower = strtolower((string)($result['response_raw'] ?? ''));
+        $json = $result['response_json'] ?? null;
+        $errorLower = '';
+        if (is_array($json) && isset($json['error']) && is_string($json['error'])) {
+            $errorLower = strtolower(trim($json['error']));
+        }
+
+        if (
+            str_contains($rawLower, 'debe ingresar al menos un dato')
+            || str_contains($rawLower, 'debe ingresar al menos uno')
+            || str_contains($errorLower, 'debe ingresar al menos un dato')
+        ) {
+            add_flash('success', 'Conexion exitosa.');
+        } elseif (
+            str_contains($rawLower, 'usuario o clave incorrecta')
+            || str_contains($errorLower, 'usuario o clave incorrecta')
+            || str_contains($rawLower, 'api key invalida')
+            || $result['error_type'] === 'auth'
+        ) {
+            add_flash('danger', 'Credenciales invalidas.');
+        } elseif ($result['error_type'] === 'timeout' || $result['error_type'] === 'network' || $result['error_type'] === 'parse' || (int)$result['http_code'] === 404) {
+            add_flash('danger', 'Conexion fallo (timeout/network/404/no JSON).');
+        } elseif ($result['ok']) {
+            add_flash('success', 'Conexion exitosa.');
+        } else {
+            add_flash('warning', 'Conexion respondio con estado no esperado.');
+        }
+    };
+    $prepareConfigInput = static function (array $input, string $profile): array {
+        if ($profile === 'header') {
+            $input['usuario'] = '';
+            $input['clave'] = '';
+        } elseif ($profile === 'query') {
+            $input['api_key'] = '';
+            $input['header_name'] = '';
+        }
+        return $input;
+    };
 
     switch ($action) {
         case 'reset_demo':
@@ -16,15 +72,40 @@ function handle_post_action(string $fallbackPage): void
                 'url' => '',
                 'api_key' => '',
                 'header_name' => '',
+                'usuario' => '',
+                'clave' => '',
                 'timeout_ms' => 5000,
             ];
+            $savedConfigs = $_SESSION['api_configs'] ?? null;
             session_unset();
-            $_SESSION['api_config'] = is_array($savedConfig) ? $savedConfig : [
+            $defaultConfig = [
                 'url' => '',
                 'api_key' => '',
                 'header_name' => '',
+                'usuario' => '',
+                'clave' => '',
                 'timeout_ms' => 5000,
             ];
+            if (is_array($savedConfigs)) {
+                $_SESSION['api_configs'] = array_merge(
+                    [
+                        'header' => $defaultConfig,
+                        'query' => $defaultConfig,
+                        'active' => 'header',
+                    ],
+                    $savedConfigs
+                );
+            } else {
+                $savedConfig = is_array($savedConfig) ? array_merge($defaultConfig, $savedConfig) : $defaultConfig;
+                $isQuery = trim((string)$savedConfig['usuario']) !== '' || trim((string)$savedConfig['clave']) !== '';
+                $_SESSION['api_configs'] = [
+                    'header' => $isQuery ? $defaultConfig : $savedConfig,
+                    'query' => $isQuery ? $savedConfig : $defaultConfig,
+                    'active' => 'header',
+                ];
+            }
+            $_SESSION['api_configs']['active'] = 'header';
+            $_SESSION['api_config'] = $_SESSION['api_configs'][$_SESSION['api_configs']['active']];
             $_SESSION['data_custom'] = [
                 'erp_clientes' => [],
                 'crm_contactos' => [],
@@ -51,38 +132,71 @@ function handle_post_action(string $fallbackPage): void
             exit;
 
         case 'save_config':
-            $valid = validate_config_input($_POST);
+            $input = $prepareConfigInput($_POST, $configProfile);
+            $valid = validate_config_input($input);
             if (!$valid['ok']) {
                 add_flash('danger', implode(' ', $valid['errors']));
                 redirect_page('configuracion');
             }
-            $_SESSION['api_config'] = $valid['data'];
-            add_flash('success', 'Configuracion guardada.');
+            $savedMode = in_array($configProfile, ['header', 'query'], true) ? $configProfile : $persistApiConfig($valid['data']);
+            if (!isset($_SESSION['api_configs']) || !is_array($_SESSION['api_configs'])) {
+                $_SESSION['api_configs'] = ['header' => [], 'query' => [], 'active' => 'header'];
+            }
+            $_SESSION['api_configs'][$savedMode] = $valid['data'];
+            $_SESSION['api_configs']['active'] = $savedMode;
+            $_SESSION['api_config'] = $_SESSION['api_configs'][$savedMode];
+            add_flash('success', 'Configuracion guardada y establecida como activa.');
+            $result = call_consulta_listas($valid['data'], []);
+            $flashConnectionResult($result);
             redirect_page('configuracion');
             break;
 
         case 'verify_connection':
-            $valid = validate_config_input($_POST);
+            $input = $prepareConfigInput($_POST, $configProfile);
+            $valid = validate_config_input($input);
             if (!$valid['ok']) {
                 add_flash('danger', implode(' ', $valid['errors']));
                 redirect_page('configuracion');
             }
-            $_SESSION['api_config'] = $valid['data'];
-            $result = call_consulta_listas($_SESSION['api_config'], []);
-            $rawLower = strtolower((string)($result['response_raw'] ?? ''));
-
-            if (str_contains($rawLower, 'debe ingresar al menos uno')) {
-                add_flash('success', '¡Conexion exitosa!');
-            } elseif (str_contains($rawLower, 'api key invalida') || str_contains($rawLower, 'api key inválida') || $result['error_type'] === 'auth') {
-                add_flash('danger', 'Credenciales invalidas.');
-            } elseif ($result['error_type'] === 'timeout' || $result['error_type'] === 'network' || $result['error_type'] === 'parse' || (int)$result['http_code'] === 404) {
-                add_flash('danger', 'Conexion fallo (timeout/network/404/no JSON).');
-            } elseif ($result['ok']) {
-                add_flash('success', 'Conexion exitosa.');
-            } else {
-                add_flash('warning', 'Conexion respondio con estado no esperado.');
+            $mode = in_array($configProfile, ['header', 'query'], true)
+                ? $configProfile
+                : ((trim((string)($valid['data']['usuario'] ?? '')) !== '' || trim((string)($valid['data']['clave'] ?? '')) !== '') ? 'query' : 'header');
+            $activeMode = (string)($_SESSION['api_configs']['active'] ?? 'header');
+            if ($mode !== $activeMode) {
+                add_flash('danger', 'Solo puede verificar la configuracion activa.');
+                redirect_page('configuracion');
             }
+            if (!isset($_SESSION['api_configs']) || !is_array($_SESSION['api_configs'])) {
+                $_SESSION['api_configs'] = ['header' => [], 'query' => [], 'active' => 'header'];
+            }
+            $_SESSION['api_configs'][$mode] = $valid['data'];
+            $_SESSION['api_config'] = $_SESSION['api_configs'][$mode];
+            $result = call_consulta_listas($valid['data'], []);
+            $flashConnectionResult($result);
 
+            redirect_page('configuracion');
+            break;
+        case 'set_active_config':
+            $target = trim((string)($_POST['config_target'] ?? ''));
+            if (!in_array($target, ['header', 'query'], true)) {
+                add_flash('danger', 'Configuracion objetivo invalida.');
+                redirect_page('configuracion');
+            }
+            $input = $prepareConfigInput($_POST, $target);
+            $valid = validate_config_input($input);
+            if (!$valid['ok']) {
+                add_flash('danger', implode(' ', $valid['errors']));
+                redirect_page('configuracion');
+            }
+            if (!isset($_SESSION['api_configs']) || !is_array($_SESSION['api_configs'])) {
+                $_SESSION['api_configs'] = ['header' => [], 'query' => [], 'active' => 'header'];
+            }
+            $_SESSION['api_configs'][$target] = $valid['data'];
+            $_SESSION['api_configs']['active'] = $target;
+            $_SESSION['api_config'] = $_SESSION['api_configs'][$target];
+            add_flash('success', 'Configuracion guardada y establecida como activa.');
+            $result = call_consulta_listas($valid['data'], []);
+            $flashConnectionResult($result);
             redirect_page('configuracion');
             break;
 
@@ -114,6 +228,11 @@ function handle_post_action(string $fallbackPage): void
                 'apellidos' => $valid['data']['apellidos'],
                 'nombre_completo' => $valid['data']['nombre_completo'],
                 'documento' => $valid['data']['documento'],
+                'alias' => $valid['data']['alias'],
+                'nacionalidad' => $valid['data']['nacionalidad'],
+                'pais_domicilio' => $valid['data']['pais_domicilio'],
+                'comentarios' => $valid['data']['comentarios'],
+                'representante_legal' => $valid['data']['representante_legal'],
                 'orden' => $maxOrder + 1,
                 'meta' => [],
             ];
@@ -208,6 +327,11 @@ function handle_post_action(string $fallbackPage): void
                 'apellidos' => $valid['data']['apellidos'],
                 'nombre_completo' => $valid['data']['nombre_completo'],
                 'documento' => $valid['data']['documento'],
+                'alias' => $valid['data']['alias'],
+                'nacionalidad' => $valid['data']['nacionalidad'],
+                'pais_domicilio' => $valid['data']['pais_domicilio'],
+                'comentarios' => $valid['data']['comentarios'],
+                'representante_legal' => $valid['data']['representante_legal'],
             ];
 
             add_flash('success', 'Registro actualizado correctamente.');
@@ -356,6 +480,11 @@ function handle_post_action(string $fallbackPage): void
 
         case 'run_batch':
             $listKey = trim((string)($_POST['list_key'] ?? ''));
+            $redirectLote = static function (string $list): void {
+                $safeList = valid_list_key($list) ? $list : 'erp_clientes';
+                header('Location: index.php?page=lote&list=' . rawurlencode($safeList));
+                exit;
+            };
             $recordIds = $_POST['record_ids'] ?? [];
             $maxAllowed = (int)($_POST['max_lote'] ?? 10);
             if ($maxAllowed !== 20) {
@@ -364,15 +493,15 @@ function handle_post_action(string $fallbackPage): void
 
             if (!valid_list_key($listKey)) {
                 add_flash('danger', 'Lista invalida para lote.');
-                redirect_page('lote');
+                $redirectLote('erp_clientes');
             }
             if (!is_array($recordIds) || empty($recordIds)) {
                 add_flash('danger', 'Debe seleccionar al menos un registro.');
-                redirect_page('lote');
+                $redirectLote($listKey);
             }
             if (count($recordIds) > $maxAllowed) {
                 add_flash('danger', 'Supera el limite maximo permitido (' . $maxAllowed . ').');
-                redirect_page('lote');
+                $redirectLote($listKey);
             }
 
             $rows = [];
@@ -508,9 +637,9 @@ function handle_post_action(string $fallbackPage): void
             if ($fail > 0) {
                 add_flash('info', 'Lote ejecutado.');
             } else {
-                add_flash('success', 'Consultas exitosas : ' . $ok);
+                add_flash('success', 'Consultas exitosas');
             }
-            redirect_page('lote');
+            $redirectLote($listKey);
             break;
 
         default:

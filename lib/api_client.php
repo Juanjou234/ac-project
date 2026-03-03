@@ -7,6 +7,8 @@ function call_consulta_listas(array $config, array $payload): array
     $url = trim((string)($config['url'] ?? ''));
     $apiKey = trim((string)($config['api_key'] ?? ''));
     $headerName = trim((string)($config['header_name'] ?? ''));
+    $usuario = trim((string)($config['usuario'] ?? ''));
+    $clave = trim((string)($config['clave'] ?? ''));
     $timeoutMs = (int)($config['timeout_ms'] ?? 5000);
 
     if ($url === '') {
@@ -20,7 +22,19 @@ function call_consulta_listas(array $config, array $payload): array
             'response_json' => null,
         ];
     }
-    if ($apiKey === '' || $headerName === '') {
+    $usesQueryCredentials = ($usuario !== '' || $clave !== '');
+    if ($usesQueryCredentials && ($usuario === '' || $clave === '')) {
+        return [
+            'ok' => false,
+            'http_code' => 0,
+            'elapsed_ms' => 0,
+            'error_type' => 'validation',
+            'error_message' => 'Usuario o clave vacio para autenticacion por query.',
+            'response_raw' => '',
+            'response_json' => null,
+        ];
+    }
+    if (!$usesQueryCredentials && ($apiKey === '' || $headerName === '')) {
         return [
             'ok' => false,
             'http_code' => 0,
@@ -35,7 +49,27 @@ function call_consulta_listas(array $config, array $payload): array
         $timeoutMs = 1000;
     }
 
-    $ch = curl_init($url);
+    $requestUrl = $url;
+    if ($usesQueryCredentials) {
+        $query = [
+            'usuario' => $usuario,
+            'clave' => $clave,
+        ];
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) {
+                continue;
+            }
+            if ($v === null || $v === '') {
+                continue;
+            }
+            $query[$k] = (string)$v;
+        }
+
+        $separator = str_contains($url, '?') ? '&' : '?';
+        $requestUrl .= $separator . http_build_query($query);
+    }
+
+    $ch = curl_init($requestUrl);
     if ($ch === false) {
         return [
             'ok' => false,
@@ -48,35 +82,46 @@ function call_consulta_listas(array $config, array $payload): array
         ];
     }
 
-    $headers = [
-        'Content-Type: application/json',
-        $headerName . ': ' . $apiKey,
-    ];
-
-    $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
-    if ($jsonPayload === false) {
-        return [
-            'ok' => false,
-            'http_code' => 0,
-            'elapsed_ms' => 0,
-            'error_type' => 'validation',
-            'error_message' => 'No se pudo serializar payload.',
-            'response_raw' => '',
-            'response_json' => null,
+    if ($usesQueryCredentials) {
+        curl_setopt_array(
+            $ch,
+            [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPGET => true,
+                CURLOPT_CONNECTTIMEOUT_MS => $timeoutMs,
+                CURLOPT_TIMEOUT_MS => $timeoutMs,
+            ]
+        );
+    } else {
+        $headers = [
+            'Content-Type: application/json',
+            $headerName . ': ' . $apiKey,
         ];
-    }
+        $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($jsonPayload === false) {
+            return [
+                'ok' => false,
+                'http_code' => 0,
+                'elapsed_ms' => 0,
+                'error_type' => 'validation',
+                'error_message' => 'No se pudo serializar payload.',
+                'response_raw' => '',
+                'response_json' => null,
+            ];
+        }
 
-    curl_setopt_array(
-        $ch,
-        [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_POSTFIELDS => $jsonPayload,
-            CURLOPT_CONNECTTIMEOUT_MS => $timeoutMs,
-            CURLOPT_TIMEOUT_MS => $timeoutMs,
-        ]
-    );
+        curl_setopt_array(
+            $ch,
+            [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => $jsonPayload,
+                CURLOPT_CONNECTTIMEOUT_MS => $timeoutMs,
+                CURLOPT_TIMEOUT_MS => $timeoutMs,
+            ]
+        );
+    }
 
     $start = microtime(true);
     $responseRaw = curl_exec($ch);

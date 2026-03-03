@@ -8,6 +8,12 @@ $lists = [
     'crm_empresas' => 'CRM Empresas',
     'terceros' => 'Terceros',
 ];
+$historyListLabels = [
+    'erp_clientes' => 'Gestion Operativa - Clientes',
+    'crm_contactos' => 'Gestion Comercial - Contactos',
+    'crm_empresas' => 'Gestion Comercial - Empresas',
+    'terceros' => 'Gestion Comercial - Terceros',
+];
 ?>
 <div class="row g-3 mb-4">
   <?php foreach ($lists as $key => $label): ?>
@@ -24,18 +30,7 @@ $lists = [
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-7">
-    <div class="card shadow-sm">
-      <div class="card-header">Configuracion actual API</div>
-      <div class="card-body">
-        <?php $cfg = $_SESSION['api_config'] ?? []; ?>
-        <p class="mb-1"><strong>URL:</strong> <?= e((string)($cfg['url'] ?? '')) ?></p>
-        <p class="mb-1"><strong>Header:</strong> <?= e((string)($cfg['header_name'] ?? '')) ?></p>
-        <!-- <p class="mb-0"><strong>Timeout:</strong> <?php //echo e((string)($cfg['timeout_ms'] ?? 0)) ?> ms</p> -->
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-5">
+  <div class="col-12">
     <div class="card shadow-sm">
       <div class="card-header">Historial reciente</div>
       <div class="card-body p-0">
@@ -44,8 +39,8 @@ $lists = [
             <thead>
               <tr>
                 <th>Fecha</th>
+                <th>Registro</th>
                 <th>Lista</th>
-                <th>ID</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -60,10 +55,36 @@ $lists = [
               <?php else: ?>
                 <?php foreach ($history as $h): ?>
                   <?php $ok = !empty($h['resultado']['ok']); ?>
+                  <?php
+                  $listKey = (string)($h['lista'] ?? '');
+                  $listLabel = $historyListLabels[$listKey] ?? $listKey;
+                  $payload = is_array($h['payload'] ?? null) ? $h['payload'] : [];
+                  $registro = '';
+                  if (trim((string)($payload['nombre_completo'] ?? '')) !== '') {
+                      $registro = trim((string)$payload['nombre_completo']);
+                  } else {
+                      $nombres = trim((string)($payload['nombres'] ?? ''));
+                      $apellidos = trim((string)($payload['apellidos'] ?? ''));
+                      $registro = trim($nombres . ' ' . $apellidos);
+                  }
+                  if ($registro === '') {
+                      $registro = (string)($h['registro_id'] ?? '-');
+                  }
+                  $dateRaw = trim((string)($h['timestamp'] ?? ''));
+                  $dateOnly = $dateRaw;
+                  if ($dateRaw !== '') {
+                      $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $dateRaw);
+                      if ($dt instanceof DateTimeImmutable) {
+                          $dateOnly = $dt->format('d/m/Y H:i:s');
+                      } elseif ((bool)preg_match('/^\d{4}-\d{2}-\d{2}/', $dateRaw)) {
+                          $dateOnly = substr($dateRaw, 0, 10);
+                      }
+                  }
+                  ?>
                   <tr>
-                    <td><?= e((string)($h['timestamp'] ?? '')) ?></td>
-                    <td><?= e((string)($h['lista'] ?? '')) ?></td>
-                    <td><?= e((string)($h['registro_id'] ?? '')) ?></td>
+                    <td><?= e($dateOnly) ?></td>
+                    <td><?= e($registro) ?></td>
+                    <td><?= e($listLabel) ?></td>
                     <td><span class="badge bg-<?= $ok ? 'success' : 'danger' ?>"><?= $ok ? 'OK' : 'FAIL' ?></span></td>
                   </tr>
                 <?php endforeach; ?>

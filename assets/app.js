@@ -13,6 +13,9 @@
     const nombres = document.getElementById("nuevo_nombres");
     const apellidos = document.getElementById("nuevo_apellidos");
     const nombreCompleto = document.getElementById("nuevo_nombre_completo");
+    const alias = document.getElementById("nuevo_alias");
+    const comentarios = document.getElementById("nuevo_comentarios");
+    const representanteLegal = document.getElementById("nuevo_representante_legal");
 
     if (!blockPn || !blockPj || !nombres || !apellidos || !nombreCompleto) {
       return;
@@ -25,6 +28,9 @@
       apellidos.required = true;
       nombreCompleto.required = false;
       nombreCompleto.value = "";
+      if (representanteLegal) {
+        representanteLegal.value = "";
+      }
     } else {
       blockPn.classList.add("d-none");
       blockPj.classList.remove("d-none");
@@ -33,6 +39,12 @@
       nombres.value = "";
       apellidos.value = "";
       nombreCompleto.required = true;
+      if (alias) {
+        alias.value = "";
+      }
+      if (comentarios) {
+        comentarios.value = "";
+      }
     }
   };
 
@@ -47,6 +59,9 @@
     const nombres = document.getElementById("edit_nombres");
     const apellidos = document.getElementById("edit_apellidos");
     const nombreCompleto = document.getElementById("edit_nombre_completo");
+    const alias = document.getElementById("edit_alias");
+    const comentarios = document.getElementById("edit_comentarios");
+    const representanteLegal = document.getElementById("edit_representante_legal");
 
     if (!blockPn || !blockPj || !nombres || !apellidos || !nombreCompleto) {
       return;
@@ -59,6 +74,9 @@
       apellidos.required = true;
       nombreCompleto.required = false;
       nombreCompleto.value = "";
+      if (representanteLegal) {
+        representanteLegal.value = "";
+      }
     } else {
       blockPn.classList.add("d-none");
       blockPj.classList.remove("d-none");
@@ -67,6 +85,12 @@
       nombres.value = "";
       apellidos.value = "";
       nombreCompleto.required = true;
+      if (alias) {
+        alias.value = "";
+      }
+      if (comentarios) {
+        comentarios.value = "";
+      }
     }
   };
 
@@ -157,6 +181,11 @@
         const apellidos = btn.getAttribute("data-apellidos") || "";
         const nombreCompleto = btn.getAttribute("data-nombre-completo") || "";
         const documento = btn.getAttribute("data-documento") || "";
+        const alias = btn.getAttribute("data-alias") || "";
+        const nacionalidad = btn.getAttribute("data-nacionalidad") || "";
+        const paisDomicilio = btn.getAttribute("data-pais-domicilio") || "";
+        const comentarios = btn.getAttribute("data-comentarios") || "";
+        const representanteLegal = btn.getAttribute("data-representante-legal") || "";
 
         const rid = document.getElementById("edit_record_id");
         const t = document.getElementById("edit_tipo");
@@ -164,6 +193,11 @@
         const a = document.getElementById("edit_apellidos");
         const nc = document.getElementById("edit_nombre_completo");
         const d = document.getElementById("edit_documento");
+        const al = document.getElementById("edit_alias");
+        const nac = document.getElementById("edit_nacionalidad");
+        const pais = document.getElementById("edit_pais_domicilio");
+        const com = document.getElementById("edit_comentarios");
+        const rep = document.getElementById("edit_representante_legal");
 
         if (rid) rid.value = recordId;
         if (t) t.value = tipo;
@@ -171,6 +205,11 @@
         if (a) a.value = apellidos;
         if (nc) nc.value = nombreCompleto;
         if (d) d.value = documento;
+        if (al) al.value = alias;
+        if (nac) nac.value = nacionalidad;
+        if (pais) pais.value = paisDomicilio;
+        if (com) com.value = comentarios;
+        if (rep) rep.value = representanteLegal;
         toggleEditTipo();
       });
     });
@@ -211,6 +250,79 @@
     });
   };
 
+  const bindConfigModeToggle = () => {
+    const toggleBtn = document.getElementById("config_mode_toggle");
+    const modeLabel = document.getElementById("config_mode_label");
+    const modeHelp = document.getElementById("config_mode_help");
+    const modeInput = document.getElementById("config_mode_input");
+    const urlHidden = document.getElementById("config_url_hidden");
+    const urlTraditional = document.querySelector("input[name='url_traditional']");
+    const urlQuery = document.querySelector("input[name='url_query']");
+    const apiKey = document.querySelector("input[name='api_key']");
+    const headerName = document.querySelector("input[name='header_name']");
+    const usuario = document.querySelector("input[name='usuario']");
+    const clave = document.querySelector("input[name='clave']");
+    const traditionalGroups = document.querySelectorAll(".js-config-group-traditional");
+    const queryGroups = document.querySelectorAll(".js-config-group-query");
+
+    if (!toggleBtn || !modeInput || !urlHidden || !urlTraditional || !urlQuery) {
+      return;
+    }
+
+    const queryUrl = toggleBtn.getAttribute("data-query-url") || "";
+    const applyMode = (mode) => {
+      const queryMode = mode === "query";
+      modeInput.value = queryMode ? "query" : "traditional";
+      toggleBtn.setAttribute("data-mode", modeInput.value);
+
+      traditionalGroups.forEach((el) => el.classList.toggle("d-none", queryMode));
+      queryGroups.forEach((el) => el.classList.toggle("d-none", !queryMode));
+
+      if (queryMode) {
+        if (queryUrl && urlQuery.value.trim() === "") {
+          urlQuery.value = queryUrl;
+        }
+        urlHidden.value = urlQuery.value.trim() !== "" ? urlQuery.value.trim() : queryUrl;
+      } else {
+        urlHidden.value = urlTraditional.value.trim();
+      }
+
+      if (usuario) usuario.required = queryMode;
+      if (clave) clave.required = queryMode;
+      if (apiKey) apiKey.required = false;
+      if (headerName) headerName.required = false;
+
+      if (modeLabel) {
+        modeLabel.textContent = queryMode
+          ? "amlconsulta_2 (usuario/clave)"
+          : "tradicional (header/api key)";
+      }
+      if (modeHelp) {
+        modeHelp.textContent = queryMode
+          ? "Modo amlconsulta_2: use usuario y clave. API Key/Header no se usan."
+          : "Modo tradicional: use API Key + Header name. Usuario/clave no se usan.";
+      }
+    };
+
+    toggleBtn.addEventListener("click", () => {
+      const currentMode = toggleBtn.getAttribute("data-mode") === "query" ? "query" : "traditional";
+      applyMode(currentMode === "query" ? "traditional" : "query");
+    });
+
+    urlTraditional.addEventListener("input", () => {
+      if (modeInput.value === "traditional") {
+        urlHidden.value = urlTraditional.value.trim();
+      }
+    });
+    urlQuery.addEventListener("input", () => {
+      if (modeInput.value === "query") {
+        urlHidden.value = urlQuery.value.trim();
+      }
+    });
+
+    applyMode(modeInput.value === "query" ? "query" : "traditional");
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     validateInputSet();
     bindBatchSelectAll();
@@ -218,6 +330,7 @@
     bindAutoFlashes();
     bindEditModal();
     bindGlobalDetailModal();
+    bindConfigModeToggle();
     const tipoEl = document.getElementById("nuevo_tipo");
     if (tipoEl) {
       tipoEl.addEventListener("change", toggleNuevoTipo);

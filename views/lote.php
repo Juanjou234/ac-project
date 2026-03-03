@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
-$selectedList = (string)($_GET['list'] ?? 'erp_clientes');
+$lastBatch = $_SESSION['batch_last'] ?? [];
+$defaultList = (is_array($lastBatch) && valid_list_key((string)($lastBatch['list'] ?? '')))
+    ? (string)$lastBatch['list']
+    : 'erp_clientes';
+$selectedList = (string)($_GET['list'] ?? $defaultList);
 if (!valid_list_key($selectedList)) {
-    $selectedList = 'erp_clientes';
+    $selectedList = $defaultList;
 }
 $records = get_list_data($selectedList);
 $batch = $_SESSION['batch_last'] ?? [];
@@ -23,10 +27,10 @@ $batch = $_SESSION['batch_last'] ?? [];
             class="form-select"
             onchange="window.location='index.php?page=lote&list=' + encodeURIComponent(this.value)"
           >
-            <option value="erp_clientes" <?= $selectedList === 'erp_clientes' ? 'selected' : '' ?>>ERP Clientes</option>
-            <option value="crm_contactos" <?= $selectedList === 'crm_contactos' ? 'selected' : '' ?>>CRM Contactos</option>
-            <option value="crm_empresas" <?= $selectedList === 'crm_empresas' ? 'selected' : '' ?>>CRM Empresas</option>
-            <option value="terceros" <?= $selectedList === 'terceros' ? 'selected' : '' ?>>Terceros</option>
+            <option value="erp_clientes" <?= $selectedList === 'erp_clientes' ? 'selected' : '' ?>>Gestion Operativa - Clientes</option>
+            <option value="crm_contactos" <?= $selectedList === 'crm_contactos' ? 'selected' : '' ?>>Gestion Comercial - Contactos</option>
+            <option value="crm_empresas" <?= $selectedList === 'crm_empresas' ? 'selected' : '' ?>>Gestion Comercial - Empresas</option>
+            <option value="terceros" <?= $selectedList === 'terceros' ? 'selected' : '' ?>>Gestion Comercial - Terceros</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -74,7 +78,7 @@ $batch = $_SESSION['batch_last'] ?? [];
             <tr>
               <th>Nombres</th>
               <th>Apellidos</th>
-              <th>Nombre completo</th>
+              <th>Nombre de Empresa</th>
               <th>Documento</th>
               <th>Coincidencias</th>
               <th>Resultados</th>
@@ -87,11 +91,12 @@ $batch = $_SESSION['batch_last'] ?? [];
               $respJson = $row['response_json'] ?? null;
               $datos = (is_array($respJson) && isset($respJson['datos']) && is_array($respJson['datos'])) ? $respJson['datos'] : [];
               $num = (is_array($respJson) && array_key_exists('num_registros', $respJson)) ? (int)$respJson['num_registros'] : count($datos);
+              $nombreEmpresa = (string)(($row['mode'] ?? '') === 'B' ? ($row['nombre_completo'] ?? '') : '');
               ?>
               <tr>
                 <td><?= e((string)($row['nombres'] ?? '')) ?></td>
                 <td><?= e((string)($row['apellidos'] ?? '')) ?></td>
-                <td><?= e((string)($row['nombre_completo'] ?? '')) ?></td>
+                <td><?= e($nombreEmpresa) ?></td>
                 <td><?= e((string)($row['documento'] ?? '')) ?></td>
                 <td><?= e((string)$num) ?></td>
                 <td>
