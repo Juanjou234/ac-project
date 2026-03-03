@@ -27,7 +27,7 @@ return [
         'tipo' => 'PJ',
         'nombres' => '',
         'apellidos' => '',
-        'nombre_completo' => 'Distribuidora del Valla',
+        'nombre_completo' => 'Distribuidores del Valla',
         'documento' => '800444333',
         'orden' => 3,
     ],
