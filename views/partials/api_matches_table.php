@@ -191,7 +191,7 @@ $normalizeDisplayValue = $normalizeDisplayValue ?? static function (string $valu
         <th>No documento</th>
         <th>Nombre lista</th>
         <th>% Coincidencia</th>
-        <th>Informacion</th>
+        <th>Información</th>
       </tr>
     </thead>
     <tbody>
@@ -381,7 +381,7 @@ $normalizeDisplayValue = $normalizeDisplayValue ?? static function (string $valu
                   <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content">
                       <div class="modal-header">
-                        <h5 class="modal-title">Detalle informacion_registro</h5>
+                        <h5 class="modal-title">Detalle informacion del registro</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                       </div>
                       <div class="modal-body">

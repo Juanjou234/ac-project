@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-const REGEX_NAME = '/^(?=.{1,120}$)[\p{L}]+(?:\s+[\p{L}]+)*$/u';
+const REGEX_NAME = '/^(?=.{1,120}$)[\p{L}\p{N}._"\'\-]+(?:\s+[\p{L}\p{N}._"\'\-]+)*$/u';
 const REGEX_DOC = '/^(?=.{0,40}$)[0-9]+(?:[0-9\s-]*[0-9])?$/';
 
 function valid_list_key(string $listKey): bool
@@ -43,13 +43,13 @@ function validate_record_input(array $input): array
     }
 
     if ($nombres !== '' && !validate_name_field($nombres)) {
-        $errors[] = 'Nombres invalido. Solo letras y espacios (1-120).';
+        $errors[] = 'Nombres invalido. Use letras, numeros, espacios y .-_ comillas (1-120).';
     }
     if ($apellidos !== '' && !validate_name_field($apellidos)) {
-        $errors[] = 'Apellidos invalido. Solo letras y espacios (1-120).';
+        $errors[] = 'Apellidos invalido. Use letras, numeros, espacios y .-_ comillas (1-120).';
     }
     if ($nombreCompleto !== '' && !validate_name_field($nombreCompleto)) {
-        $errors[] = 'Nombre completo invalido. Solo letras y espacios (1-120).';
+        $errors[] = 'Nombre completo invalido. Use letras, numeros, espacios y .-_ comillas (1-120).';
     }
     if (!validate_document_field($documento)) {
         $errors[] = 'Documento invalido. Solo numeros, espacios y guion (max 40).';
@@ -143,10 +143,10 @@ function validate_consulta_input(array $input): array
             $errors[] = 'Modo A requiere nombres y apellidos.';
         }
         if ($nombres !== '' && !validate_name_field($nombres)) {
-            $errors[] = 'Nombres invalido para modo A.';
+            $errors[] = 'Nombres invalido para modo A. Use letras, numeros, espacios y .-_ comillas.';
         }
         if ($apellidos !== '' && !validate_name_field($apellidos)) {
-            $errors[] = 'Apellidos invalido para modo A.';
+            $errors[] = 'Apellidos invalido para modo A. Use letras, numeros, espacios y .-_ comillas.';
         }
         if ($nombreCompleto !== '') {
             $errors[] = 'Modo A no permite nombre_completo.';
@@ -158,7 +158,7 @@ function validate_consulta_input(array $input): array
             $errors[] = 'Modo B requiere nombre_completo.';
         }
         if ($nombreCompleto !== '' && !validate_name_field($nombreCompleto)) {
-            $errors[] = 'Nombre completo invalido para modo B.';
+            $errors[] = 'Nombre completo invalido para modo B. Use letras, numeros, espacios y .-_ comillas.';
         }
         if ($nombres !== '' || $apellidos !== '') {
             $errors[] = 'Modo B no permite nombres ni apellidos.';
@@ -174,7 +174,7 @@ function validate_consulta_input(array $input): array
         }
     }
     if ($mode === 'B') {
-        $payload['nombre_completo'] = $nombreCompleto;
+        $payload['nombres'] = $nombreCompleto;
         if ($documento !== '') {
             $payload['documento'] = $documento;
         }

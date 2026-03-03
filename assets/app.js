@@ -1,5 +1,5 @@
 (() => {
-  const NAME_REGEX = /^(?=.{1,120}$)[\p{L}]+(?:\s+[\p{L}]+)*$/u;
+  const NAME_REGEX = /^(?=.{1,120}$)[\p{L}\p{N}._"'\-]+(?:\s+[\p{L}\p{N}._"'\-]+)*$/u;
   const DOC_REGEX = /^(?=.{0,40}$)[0-9]+(?:[0-9\s-]*[0-9])?$/;
 
   const toggleNuevoTipo = () => {
@@ -102,7 +102,7 @@
           el.setCustomValidity("");
           return;
         }
-        el.setCustomValidity(NAME_REGEX.test(v) ? "" : "Solo letras y espacios (1-120).");
+        el.setCustomValidity(NAME_REGEX.test(v) ? "" : "Use letras, numeros, espacios y .-_ comillas (1-120).");
       });
     });
 
